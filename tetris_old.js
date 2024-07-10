@@ -709,7 +709,7 @@ redraw = function(w, n, h, g) {
     // draw_hold_shape(h, w)
 }
 
-let args = [0, 0, 0, 0];
+let args = [0, 0, 0, 0, 0];
 let score = 0;
 let locked_positions = {};
 let grid = get_grid();
@@ -727,7 +727,6 @@ let best_move = null; // get_best_move(get_raw_moves(c_piece, n_piece));
 
 reset = function() {
     locked_positions = {};
-    score = 0;
     grid = get_grid();
     bag = get_new_bag();
     c_piece = get_next_piece(bag);
@@ -917,7 +916,7 @@ get_board_score = function(b) {
     if (isNaN(wells)) {
         wells = 0;
     }
-    return board_height * args[0] - bumpiness * args[1] - holes * args[2] - wells * args[3];
+    return board_height * args[0] - bumpiness * args[1] - holes * args[2] - wells * args[3] + clears * args[4];
 }
 
 function get_best_move(moves) {
@@ -1028,9 +1027,10 @@ document.getElementById('go').addEventListener('click', function() {
     let new_args = [parseInt(document.getElementById('height').value),
     parseInt(document.getElementById('bumps').value),
     parseInt(document.getElementById('holes').value),
-    parseInt(document.getElementById('wells').value)];
+    parseInt(document.getElementById('wells').value),
+    parseInt(document.getElementById('clears').value)];
     
-    for (let c_arg = 0; c_arg < 4; c_arg++) {
+    for (let c_arg = 0; c_arg < 5; c_arg++) {
         if (isNaN(new_args[c_arg])) {
             new_args[c_arg] = 0;
         }
