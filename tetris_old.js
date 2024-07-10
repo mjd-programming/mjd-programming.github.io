@@ -727,6 +727,7 @@ let best_move = null; // get_best_move(get_raw_moves(c_piece, n_piece));
 
 reset = function() {
     locked_positions = {};
+    score = 0;
     grid = get_grid();
     bag = get_new_bag();
     c_piece = get_next_piece(bag);
