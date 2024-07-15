@@ -2,16 +2,42 @@
 <html>
     <head>
         <title>
-            Tetris
+            Michael J D'Arcy
         </title>
+    <style>
+        * {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+        #canvas {
+            display: flex;
+        }
+
+        #score_div {
+            margin-bottom: 10px;
+        }
+
+        input {
+            display: flex;
+            margin: 10px;
+            margin-left: 0px;
+            margin-top: 0px;
+        }
+    </style>
     </head>
     <body>
         <canvas id="canvas"></canvas>
-        <div id="score_div"></div>
+        <div id="score_div">Lines cleared: 0</div>
+        Height
         <input type="text" size="10" id="height" placeholder="Height"/>
+        Bumps
         <input type="text" size="10" id="bumps" placeholder="Bumps"/>
+        Holes
         <input type="text" size="10" id="holes" placeholder="Holes"/>
+        Wells
         <input type="text" size="10" id="wells" placeholder="Wells"/>
+        Nines
+        <input type="text" size="10" id="nines" placeholder="Nines"/>
+        Line Clears
         <input type="text" size="10" id="clears" placeholder="Clears"/>
         <button id="go">Submit</button>
         <script src="tetris_old.js"></script>

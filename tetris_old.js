@@ -1,9 +1,7 @@
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext('2d');
-const CANVAS_WIDTH = canvas.width = 320;
-const CANVAS_HEIGHT = canvas.height = 480;
 
-let key = null;
+// let key = null;
 
 shapes = [
     [['....','oooo','....','....'],
@@ -39,14 +37,25 @@ shapes = [
 shape_indecies = ['i','j','l','o','s','t','z'];
 
 colors = ['#00ffff','#0000ff','#ff8800','#ffff00','#00ff00','#ff00ff','#ff0000'];
-board_color = '#dcdcdc';
-background_color = '#a1a1a1';
-LINE_COLOR = '#bcbcbc';
+board_color = '#ededed';
+background_color = '#cccccc';
+LINE_COLOR = '#d2d2d2';
+
+/*
+const BACKGROUND_COLOR = '#cccccc';
+const GRID_BACKGROUND_COLOR = '#ededed'
+const GRID_LINE_COLOR = '#d2d2d2';
+*/
+
 starting_positions = [3, -1];
 
 FPS = 20;
 
 block_size = 20;
+
+const CANVAS_WIDTH = canvas.width = block_size * 16;
+const CANVAS_HEIGHT = canvas.height = block_size * 22;
+
 s_width = 18 * block_size;
 s_height = 26 * block_size;
 play_width = 10 * block_size;
@@ -611,11 +620,11 @@ def draw_text_middle(text, size, color, surface):
     surface.blit(label, (top_left_x + play_width/2 - (label.get_width() / 2), top_left_y + play_height/2 - label.get_height()/2))
 */
 
-function drawSquareAt(x, y, c) {
+function drawSquareAt(x, y, c, si) {
     ctx.strokeStyle = '#000000';
     ctx.fillStyle = c;
-    ctx.fillRect(x, y, block_size, block_size);
-    ctx.strokeRect(x, y, block_size, block_size);
+    ctx.fillRect(x, y, si, si);
+    ctx.strokeRect(x, y, si, si);
 }
 
 function drawGrid(sx, sy) {
@@ -636,6 +645,37 @@ function drawGrid(sx, sy) {
         ctx.closePath();
         ctx.stroke();
     }
+}
+
+draw_small = function(sx, sy, p, t) {
+    ctx.fillStyle = board_color;
+    ctx.fillRect(sx + block_size * 11, sy, block_size * 3, block_size * 3);
+    ctx.strokeStyle = LINE_COLOR;
+    for (let c = 1; c < 4; c++) {
+        ctx.beginPath();
+        ctx.moveTo(sx + block_size * 11 + (c * 3 / 4 * block_size), sy);
+        ctx.lineTo(sx + block_size * 11 + (c * 3 / 4 * block_size), sy + block_size * 3);
+        ctx.closePath();
+        ctx.stroke();
+    }
+    for (let r = 1; r < 4; r++) {
+        ctx.beginPath();
+        ctx.moveTo(sx + block_size * 11, sy + (r * 3 / 4 * block_size));
+        ctx.lineTo(sx + block_size * 14, sy + (r * 3 / 4 * block_size));
+        ctx.closePath();
+        ctx.stroke();
+    }
+    if (p != null) {
+        for (let row = 0; row < 4; row++) {
+            for (let col = 0; col < 4; col++) {
+                // console.log(get_format(n_piece)[row][col]);
+                if (get_format(p)[row][col] == 'o') { drawSquareAt(sx + (block_size * 3 / 4 * col) + block_size * 11, sy + (block_size * 3 / 4 * row), p.color, block_size * 3 / 4); }
+            }
+        }
+    }
+    ctx.fillStyle = board_color;
+    ctx.font = '28px sans-serif';
+    ctx.fillText(t, sx + block_size * 11, sy - block_size / 2);
 }
 /* 
 def draw_next_shapes(shapes, surface):
@@ -689,9 +729,12 @@ draw_window = function(g) {
     ctx.fillStyle = background_color;
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     drawGrid(top_left_x, top_left_y);
+    draw_small(top_left_x, top_left_y + block_size * 2, n_piece, 'Next');
+    draw_small(top_left_x, top_left_y + block_size * 10, h_piece, 'Hold');
+    // draw_hold();
     for (let i = 0; i < 20; i++) {
         for (let j = 0; j < 10; j++) {
-            if (g[i][j] != board_color) { drawSquareAt(top_left_x + j * block_size, top_left_y + i * block_size, g[i][j]) }
+            if (g[i][j] != board_color) { drawSquareAt(top_left_x + j * block_size, top_left_y + i * block_size, g[i][j], block_size) }
         }
     }
     /*
@@ -709,8 +752,13 @@ redraw = function(w, n, h, g) {
     // draw_hold_shape(h, w)
 }
 
-let args = [0, 0, 0, 0, 0];
+let args = [1, 0, 0, 0, 0, 0];
+let highest_score = 0;
+let highest_args = args;
 let score = 0;
+let scores = 0;
+let locked_scores = {};
+let iteration = 1;
 let locked_positions = {};
 let grid = get_grid();
 let bag = get_new_bag();
@@ -726,6 +774,12 @@ let update_time = 0;
 let best_move = null; // get_best_move(get_raw_moves(c_piece, n_piece));
 
 reset = function() {
+    document.getElementById('height').value = args[0];
+    document.getElementById('bumps').value = args[1];
+    document.getElementById('holes').value = args[2];
+    document.getElementById('wells').value = args[3];
+    document.getElementById('nines').value = args[4];
+    document.getElementById('clears').value = args[5];
     locked_positions = {};
     grid = get_grid();
     bag = get_new_bag();
@@ -845,20 +899,24 @@ get_raw_moves = function(p1, p2) {
                     clone_c_piece.move_down();
                 }
                 clone_c_piece.move_up();
-                // console.log(clone_c_piece);
                 let current_positions = get_piece_positions(clone_c_piece);
                 // console.log(current_positions);
                 for (let pos_index = 0; pos_index < 4; pos_index++) {
                     x_clone_locked_positions[current_positions[pos_index]] = clone_c_piece.color;
                 }
                 // console.log(clone_c_piece.spin);
+                // console.log(x_clone_locked_positions);
                 moves[[clone_c_piece.spin, current_x, clone_c_piece.shape]] = get_grid(x_clone_locked_positions);
+                for (let a in x_clone_locked_positions) {
+                    delete a;
+                }
             }
         }
     }
     // console.log(moves);
     return moves
 }
+
 
 sum = function(a) {
     return a.reduce((partialSum, a) => partialSum + a, 0);
@@ -878,7 +936,9 @@ get_board_score = function(b) {
     let board_height = 20;
     let holes = 0;
     let clears = 0
+    let nines = 0;
     for (let row = 0; row < 20; row++) {
+        let c_blank = 0;
         if (!b[row].includes(board_color)) { clears++; }
         for (let col = 0; col < 10; col++) {
             if (b[row][col] != board_color) {
@@ -892,8 +952,11 @@ get_board_score = function(b) {
                     }
                     ti++;
                 }
+            } else {
+                c_blank++;
             }
         }
+        if (c_blank == 1) { nines++; }
     }
     let bumps = []
     for (let col = 0; col < b[0].length; col++) {
@@ -904,39 +967,44 @@ get_board_score = function(b) {
             }
         }
     }
-    let bumpiness = 0
+    let max_bump = 0;
+    let min_bump = 20;
     if (bumps.length != 0) {
-        let total_bump = 0
         for (let bump_index = 0; bump_index < bumps.length; bump_index++) {
-            total_bump += Math.abs(bumps[bump_index] - (sum(bumps) / bumps.length));
+            let current_bump = bumps[bump_index] - (sum(bumps) / bumps.length);
+            if (current_bump > max_bump) {
+                max_bump = current_bump;
+            }
+            if (current_bump < min_bump) {
+                min_bump = current_bump;
+            }
         }
-        bumpiness = total_bump;
     }
     let wells = vari(bumps);
     if (isNaN(wells)) {
         wells = 0;
     }
-    return board_height * args[0] - bumpiness * args[1] - holes * args[2] - wells * args[3] + clears * args[4];
+    return (board_height ** 2) * args[0] - (max_bump - min_bump) * args[1] - holes * args[2] - wells * args[3] + nines * args[4] + clears * args[5];
 }
 
 function get_best_move(moves) {
-    let best_move = null;
+    let best_moves = [];
     let high_score = -Number.MAX_SAFE_INTEGER;
     for (let move in moves) {
         // console.log(moves[move]);
         let score = get_board_score(moves[move]);
-        if (score > high_score) {
+        if (score > high_score) { best_moves = [] }
+        if (score >= high_score) {
             let m = move.split(',');
-            best_move = [parseInt(m[0]), parseInt(m[1]), parseInt(m[2])];
+            best_moves.push([parseInt(m[0]), parseInt(m[1]), parseInt(m[2])]);
             high_score = score;
         }
     }
-    return best_move
+    return best_moves[0]; // [Math.floor(Math.random() * best_moves.length)];
 }
 
 make_move = function(move) {
     if (move == null) {
-        console.log('ah');
         reset();
     } else {
         // console.log(move)
@@ -958,6 +1026,21 @@ make_move = function(move) {
     }
 }
 
+get_highest_scoring_args = function(a) {
+    let s = Object.entries(a)
+    for (let current_key in s) {
+        if (s[current_key][1] > highest_score) {
+            highest_score = s[current_key][1];
+            highest_args = s[current_key][0].split(',');
+        }
+    }
+    let return_args = []
+    for (let e = 0; e < highest_args.length; e++) {
+        return_args.push(parseInt(highest_args[e]) - 5 + Math.floor(Math.random() * 11));
+    }
+    return return_args; 
+}
+
 play = function() {
     grid = get_grid(locked_positions);
     make_move(best_move);
@@ -974,6 +1057,8 @@ play = function() {
         hold();
     }
     */
+    // console.log(get_board_score(grid));
+
     update_time++;
     if (update_time % 3 == 0) { soft_drop(); }
     var shape_pos = get_piece_positions(c_piece);
@@ -1009,13 +1094,15 @@ play = function() {
     redraw(grid);
 
     if (has_lost(locked_positions)) {
+        score = 0;
+        document.getElementById('score_div').innerHTML = 'Lines cleared: ' + score;
         reset();
     }
 }
 
 function start() {
     reset();
-    FPS = 30;
+    FPS = 60;
     setInterval(play, 1000 / FPS);
 }
 
@@ -1028,9 +1115,10 @@ document.getElementById('go').addEventListener('click', function() {
     parseInt(document.getElementById('bumps').value),
     parseInt(document.getElementById('holes').value),
     parseInt(document.getElementById('wells').value),
+    parseInt(document.getElementById('nines').value),
     parseInt(document.getElementById('clears').value)];
     
-    for (let c_arg = 0; c_arg < 5; c_arg++) {
+    for (let c_arg = 0; c_arg < args.length; c_arg++) {
         if (isNaN(new_args[c_arg])) {
             new_args[c_arg] = 0;
         }
